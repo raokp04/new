@@ -1,0 +1,158 @@
+
+
+do
+{
+try
+{
+start-job -Name job1 -scriptblock {
+$j1 = getjobstatus jobprocess1
+if ($j1 -eq 'SUCCESS')
+{
+email to dummy1@email.com
+}
+}
+start-job -Name job2 -scriptblock {
+$j2 = getjobstatus jobprocess2
+if ($j2 -eq 'SUCCESS')
+{
+email to dummy2@email.com
+}
+}
+
+$STATUS1 = get-job -Name job1 | wait-job | receive job
+$STATUS2 = get-job -Name job2 | wait-job | receive job
+}
+catch
+{
+$ErrorMessage = $_.Exception.Message
+$FailedItem = $_.Exception.ItemName
+}
+
+start-sleep 30 }
+while(get-date) -lt (get-date "7:00pm"))
+
+
+
+
+
+### lets start new
+
+$sbJob1 = {} #dont really care what the jobs do, just need to have scriptblock to say it will do something
+$sbJob2 = {}
+
+# lets use a hash, its fun
+$jobData = @{
+Job1 = start-job -name job1 -scriptblock $sbJob1
+Job2 = start-job -name job2 -scriptblock $sbJob2
+}
+$jobState = @{
+Job1 = 'running'
+job2 = 'running'
+}
+
+### ONE MASTER OBJECT TO RULE THEM ALL
+$jobData = @(
+  [pscustomobject]@{
+    name="job1"
+    jobObject = start-job blah
+    State = "Running"
+    SB = $sbjob1
+  },
+  [pscustomobject]@{
+    name="job2"
+    jobObject = start-job blah
+    State = "Running"
+    SB = $sbJob2
+  },
+)
+## dont let it fall in to the wrong hands
+
+
+while( (get-date) -lt "11:00pm")
+{
+
+foreach($job in $jobData.keys)
+{
+  switch($job.name)
+  {
+  "job1": { ## what do you want to do about job1?, if done, email.. set job state to complete or whatever... 
+    if($jobdata.$_ -ne "Running")
+    {
+      #do email
+      $jobState.$_ = "Completed"
+    }
+    }
+  "job2": { #if its completed ignore for 50 min
+      #basically just tons of if statements nested
+    }
+  
+  }
+  }
+  
+}
+}
+
+
+
+
+look at room title
+[18:44] <PSGroup11> okie please send e link
+[18:44] <PSGroup11> floobits
+[18:44] <+jrich523> you send me a link ;)
+[18:45] == Oatmeal [~Suzeanne@c-68-45-30-44.hsd1.in.comcast.net] has joined #Powershell
+[18:45] <PSGroup11> please see here
+[18:45] <PSGroup11> https://floobits.com/PoshCode/PowerShell.Slack.com/file/1:40
+[18:47] == Hir0gen [Hir0gen@90.208.109.62] has quit [Ping timeout: 260 seconds]
+[18:48] <sifb> +jrich523 you should really look at my Invoke-Async
+[18:48] == Hir0gen [Hir0gen@90.208.109.62] has joined #Powershell
+[18:48] <sifb> p. sure "check out my multithreading code" is the powershell equivalent of "check out my mixtape"
+[18:48] <sifb> ;)
+[18:49] <tinyfrox> those loops are fire, yo
+[18:49] <tinyfrox> sick try/catch
+[18:50] <+jrich523> my mix tape will blow all the rest away
+[18:50] <+jrich523> pssh jock jams aint got nothing on me!
+[18:50] == harukomoto [~harukomot@93-41-20-224.ip79.fastwebnet.it] has quit [Ping timeout: 252 seconds]
+[18:53] == TechIsCool [~chatzilla@jerrybeck.com] has quit [Quit: ChatZilla 0.9.90-rdmsoft [XULRunner 1.9.0.17/2009122204]]
+[18:53] <tinyfrox> this man can out-code snover himself
+[18:53] <+jrich523> does the approach im taking make sense PSGroup11?
+[18:54] <+jrich523> there are some other ways to handle it
+[18:54] <+jrich523> such as making a better "jobdata" object
+[18:54] <+jrich523> like complexe objects
+[18:54] <+jrich523> like so....
+[18:56] <PSGroup11> trying to understand :)
+[18:56] <PSGroup11> @jrich523
+[18:56] <+jrich523> you've got 4 min before i leave
+[18:56] <+jrich523> make it count
+[18:56] <PSGroup11> yes
+[18:56] <+jrich523> btw this is mostly a hodge podge of ideas, but, should be enough to get you headed in the right direction
+[18:57] <+jrich523> but essentially, you want to always loop
+[18:57] == Hir0gen [Hir0gen@90.208.109.62] has quit [Ping timeout: 240 seconds]
+[18:57] <PSGroup11> got the basic idea
+[18:57] <+jrich523> the switch block is where you take action on a job (the send email, wait 50 min) and you'll track its "state" (if its done and email is sent, if its waiting 50 min etc) will be stored in the master object
+[18:58] <+jrich523> so each 30 second loop you figure out "am i waiting 50 min or not?"
+[18:58] <+jrich523> "is job1 done? do i email? did i already email? can i ignore this job now?"
+[18:58] <+jrich523> all of that logic needs to be handled inside the switch statement
+[18:58] <PSGroup11> so for n number of jobs - i should write n if statements?
+[18:59] <+jrich523> you sorta hvae to, because each job has its own logic
+[18:59] == Hir0gen [Hir0gen@90.208.109.62] has joined #Powershell
+[18:59] <+jrich523> i mean you could make it more dynamic
+[18:59] <+jrich523> but, probably not worth it, really depends on how many jobs, how they are defined, what the logical requirements are etc etc
+[19:00] <PSGroup11> so in programming terms this is iterative approach :)
+[19:00] <+jrich523> lol sorta
+[19:00] <PSGroup11> can this be defined as multi threaded way ?
+[19:00] <PSGroup11> if its feasible :)
+[19:00] <+jrich523> sorta is
+[19:00] <+jrich523> you have jobs
+[19:00] <+jrich523> each job is its own thread
+[19:00] <+jrich523> really we're talking about the "main threads" logic
+[19:00] <+jrich523> handling the sub threads/jobs
+[19:00] <+jrich523> sort of like a scheduler
+[19:00] <PSGroup11> oh yes
+[19:00] <+jrich523> at any rate, time for me to go!
+[19:01] <+jrich523> good luck
+[19:01] <PSGroup11> thanks alot jrich
+[19:01] <+jrich523> welcome
+[19:01] <+jrich523> cya guys
+[19:01] <PSGroup11> will update you with my development
+[19:01] <PSGroup11> thanks for the heads up :)
+[19:01] == Tobbi [~Tobbi@supertux/tobbi] has quit [Quit: My MacBook has gone to sleep. 
